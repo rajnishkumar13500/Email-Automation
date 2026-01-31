@@ -20,6 +20,10 @@ on:
         default: '10'
         type: string
 
+# Need write permission to commit sent_log.csv
+permissions:
+  contents: write
+
 jobs:
   send-emails:
     runs-on: ubuntu-latest
@@ -27,6 +31,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -77,11 +83,24 @@ jobs:
           if [ "${{ github.event.inputs.test_mode }}" == "true" ]; then
             python email_sender.py --test
           else
-            # Use --auto flag to skip confirmation prompt
-            python email_sender.py --auto
+            # Use --auto and --resume flags
+            python email_sender.py --auto --resume
           fi
       
-      - name: Upload sent log
+      - name: Commit sent log to remember progress
+        if: always()
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          # Only commit if sent_log.csv exists and has changes
+          if [ -f sent_log.csv ]; then
+            git add sent_log.csv
+            git diff --staged --quiet || git commit -m "📧 Update sent_log.csv - $(date '+%Y-%m-%d %H:%M')"
+            git push
+          fi
+      
+      - name: Upload sent log as artifact (backup)
         uses: actions/upload-artifact@v4
         if: always()
         with:

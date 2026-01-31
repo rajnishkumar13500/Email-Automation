@@ -639,8 +639,11 @@ class EmailAutomation:
                 print(f"   ❌ Failed!")
             
             if sent_count + failed_count < len(df):
-                print(f"   ⏳ Waiting {config.DELAY_BETWEEN_EMAILS}s before next email...")
-                time.sleep(config.DELAY_BETWEEN_EMAILS)
+                # Random delay between 2-8 minutes to appear more human
+                import random
+                delay = random.randint(120, 480)  # 2-8 minutes in seconds
+                print(f"   ⏳ Waiting {delay // 60} min {delay % 60}s before next email...")
+                time.sleep(delay)
         
         print("\n" + "=" * 50)
         print("📊 SUMMARY")
