@@ -1,0 +1,26 @@
+# Sensitive files - NEVER commit these!
+config.py
+sent_log.csv
+HR_Contact_List.xlsx
+HR_Contact_List.pdf
+~$*.xlsx
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
