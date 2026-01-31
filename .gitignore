@@ -1,7 +1,5 @@
 # Sensitive files - NEVER commit these!
 config.py
-HR_Contact_List.xlsx
-HR_Contact_List.pdf
 ~$*.xlsx
 
 # Python

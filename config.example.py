@@ -30,7 +30,7 @@ YOUR_EDUCATION = "Your education details"
 TARGET_ROLES = "Your target roles here"
 
 # Email settings
-DELAY_BETWEEN_EMAILS = 30  # Seconds between each email (recommended: 30-60)
-DAILY_LIMIT = 10           # Stay under Gmail's 500 limit
+# Note: Delay between emails is RANDOM (2-8 minutes) to appear more human-like
+DAILY_LIMIT = 10           # Emails per run (GitHub Actions runs daily at 9 AM IST)
 TEST_EMAIL = "your.test.email@gmail.com"  # Where to send test emails
 BCC_EMAIL = ""  # Optional: BCC someone on all emails (leave empty to disable)
