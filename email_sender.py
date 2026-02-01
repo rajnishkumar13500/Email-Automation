@@ -296,18 +296,24 @@ CRITICAL REQUIREMENTS FOR A HIGH-RESPONSE EMAIL:
    - Write like you're talking to a friend who happens to be a professional
    - Be genuine and authentic - HRs can smell fake emails instantly
    - Sound confident but humble, not arrogant or desperate
-7. FORMATTING:
+7. BODY CONTENT FOCUS:
+   - Focus ONLY on achievements, experience, skills, and value you bring
+   - Do NOT mention candidate name in the body (it's already in signature)
+   - Do NOT mention LinkedIn/contact info in the body (it's already in signature)
+   - Do NOT introduce yourself by name (just start with achievements or company reference)
+   - The signature at bottom already has: name, LinkedIn - so don't repeat
+8. FORMATTING:
    - Use **bold** (double asterisks) for 1-2 KEY points you want HR to notice
    - Example: "I've worked with **SailPoint** and **Okta**" or "built **secure authentication systems**"
    - Do NOT overuse bold - only the most important 1-2 things
-8. AVOID AI PATTERNS (very important):
+9. AVOID AI PATTERNS (very important):
    - NO em-dashes (—) or unusual punctuation
    - NO phrases like "I hope this email finds you well"
    - NO "I am writing to express my interest"
    - NO "I believe I would be a great fit"
    - These scream "AI-generated template" - avoid them!
-9. LENGTH: 80-120 words MAXIMUM
-10. NO PLACEHOLDERS: Never use [brackets] or placeholder text
+10. LENGTH: 100-150 words MAXIMUM
+11. NO PLACEHOLDERS: Never use [brackets] or placeholder text
 
 WHAT MAKES HRs RESPOND:
 - Emails that feel REAL and human, not template-generated
@@ -338,34 +344,20 @@ LinkedIn: {linkedin}"""
             ]
         })
         
-        # Try AI up to 2 times before falling back
-        max_retries = 2
-        for attempt in range(max_retries):
-            try:
-                response = requests.post(self.url, headers=headers, data=data, timeout=60)
+        try:
+            response = requests.post(self.url, headers=headers, data=data, timeout=60)
+            
+            if response.status_code == 200:
+                result = response.json()
+                content = result["choices"][0]["message"]["content"]
+                return self._parse_email(content, first_name, company_clean, candidate_name, phone, linkedin)
+            else:
+                print(f"⚠️  AI API Error: {response.status_code}")
+                return self._fallback_email(first_name, company_clean, candidate_name, skills, experience, phone, linkedin, company_info)
                 
-                if response.status_code == 200:
-                    result = response.json()
-                    content = result["choices"][0]["message"]["content"]
-                    print(f"   ✅ AI generated unique email")
-                    return self._parse_email(content, first_name, company_clean, candidate_name, phone, linkedin)
-                else:
-                    print(f"⚠️  AI API Error (attempt {attempt+1}/{max_retries}): {response.status_code}")
-                    if attempt < max_retries - 1:
-                        print(f"   Retrying in 3 seconds...")
-                        time.sleep(3)
-                    else:
-                        print(f"   Response: {response.text[:200]}")
-                    
-            except Exception as e:
-                print(f"⚠️  AI generation failed (attempt {attempt+1}/{max_retries}): {e}")
-                if attempt < max_retries - 1:
-                    print(f"   Retrying in 3 seconds...")
-                    time.sleep(3)
-        
-        # All retries failed, use fallback
-        print(f"   Using fallback template...")
-        return self._fallback_email(first_name, company_clean, candidate_name, skills, experience, phone, linkedin, company_info, target_roles)
+        except Exception as e:
+            print(f"⚠️  AI generation failed: {e}")
+            return self._fallback_email(first_name, company_clean, candidate_name, skills, experience, phone, linkedin, company_info)
     
     def _parse_email(self, content: str, hr_name: str, company: str, 
                      candidate_name: str, phone: str, linkedin: str) -> tuple:
@@ -389,10 +381,6 @@ LinkedIn: {linkedin}"""
             subject = f"Exploring Opportunities at {company}"
         if not body:
             body = content
-        
-        # Ensure LinkedIn URL has proper "LinkedIn:" prefix for HTML conversion
-        if linkedin in body and f"LinkedIn: {linkedin}" not in body and f"LinkedIn:{linkedin}" not in body:
-            body = body.replace(linkedin, f"LinkedIn: {linkedin}")
         
         return subject, body
     
@@ -420,7 +408,6 @@ LinkedIn: {linkedin}"""
         # Use company info if available
         company_hook = ""
         if company_info and "no additional information" not in company_info.lower():
-            first_sentence = company_info.split('.')[0][:150]
             hooks = [
                 f"I came across {company} and was impressed by your innovative work. ",
                 f"Learning about {company}'s focus on technology got me excited about potential opportunities. ",
@@ -428,19 +415,19 @@ LinkedIn: {linkedin}"""
             ]
             company_hook = random.choice(hooks)
         
-        # Create variety in body text with bold keywords from actual skills
+        # Create bold keywords from actual skills
         skill_list = [s.strip() for s in skills.split(',')[:3] if s.strip()]
         highlighted_skills = ', '.join([f"**{s}**" for s in skill_list]) if skill_list else "**technology solutions**"
         
-        # Different body templates
+        # Different body templates - NO name in body, only achievements/skills
         body_templates = [
             f"""Dear {hr_name},
 
-{company_hook}I'm {candidate_name}, with experience in {highlighted_skills}. 
+{company_hook}With hands-on experience in {highlighted_skills}, I'm excited about the possibility of contributing to your team.
 
 {experience}
 
-Would you be open to a quick chat about how I could contribute to {company}?
+Would you be open to a quick chat about potential opportunities at {company}?
 
 Best regards,
 {candidate_name}
@@ -448,9 +435,7 @@ LinkedIn: {linkedin}""",
 
             f"""Dear {hr_name},
 
-{company_hook}I'm {candidate_name}. My background includes hands-on experience with {highlighted_skills}.
-
-I'm genuinely interested in exploring opportunities at {company} where I can apply my skills and grow professionally.
+{company_hook}My background includes expertise in {highlighted_skills}, and I'm genuinely interested in exploring opportunities at {company}.
 
 Looking forward to connecting!
 
@@ -460,9 +445,9 @@ LinkedIn: {linkedin}""",
 
             f"""Dear {hr_name},
 
-{company_hook}My name is {candidate_name}, and I specialize in {highlighted_skills}.
+{company_hook}Having worked extensively with {highlighted_skills}, I believe my experience could benefit {company}.
 
-I'd love the chance to discuss how my experience could benefit {company}.
+Would love the chance to discuss this further.
 
 Best regards,
 {candidate_name}
