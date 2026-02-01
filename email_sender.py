@@ -3,13 +3,20 @@
 HR Cold Email Automation System with AI Personalization & Company Research
 ============================================================================
 Sends AI-generated personalized cold emails to HR contacts from an Excel file.
-Uses OpenRouter AI (free) + Gmail SMTP (free, 500 emails/day limit).
-Researches each company via web search for authentic personalization.
+
+FEATURES:
+- OpenRouter AI for unique email generation (with retry logic)
+- Company research via Wikipedia for personalization
+- HTML formatted emails with bold keywords and clickable LinkedIn
+- Random 2-8 minute delays between emails (human-like)
+- Progress tracking via sent_log.csv (works with GitHub Actions)
+- Resume PDF auto-attachment
 
 Usage:
-    python email_sender.py --test    # Send test email to yourself
-    python email_sender.py           # Send to all HR contacts
+    python email_sender.py --test    # Send test email to TEST_EMAIL
+    python email_sender.py           # Send to HRs (asks confirmation)
     python email_sender.py --resume  # Resume from where you left off
+    python email_sender.py --auto    # No confirmation (for GitHub Actions)
 """
 
 import smtplib
