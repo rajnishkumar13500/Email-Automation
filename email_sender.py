@@ -338,20 +338,34 @@ LinkedIn: {linkedin}"""
             ]
         })
         
-        try:
-            response = requests.post(self.url, headers=headers, data=data, timeout=60)
-            
-            if response.status_code == 200:
-                result = response.json()
-                content = result["choices"][0]["message"]["content"]
-                return self._parse_email(content, first_name, company_clean, candidate_name, phone, linkedin)
-            else:
-                print(f"⚠️  AI API Error: {response.status_code}")
-                return self._fallback_email(first_name, company_clean, candidate_name, skills, experience, phone, linkedin, company_info)
+        # Try AI up to 2 times before falling back
+        max_retries = 2
+        for attempt in range(max_retries):
+            try:
+                response = requests.post(self.url, headers=headers, data=data, timeout=60)
                 
-        except Exception as e:
-            print(f"⚠️  AI generation failed: {e}")
-            return self._fallback_email(first_name, company_clean, candidate_name, skills, experience, phone, linkedin, company_info)
+                if response.status_code == 200:
+                    result = response.json()
+                    content = result["choices"][0]["message"]["content"]
+                    print(f"   ✅ AI generated unique email")
+                    return self._parse_email(content, first_name, company_clean, candidate_name, phone, linkedin)
+                else:
+                    print(f"⚠️  AI API Error (attempt {attempt+1}/{max_retries}): {response.status_code}")
+                    if attempt < max_retries - 1:
+                        print(f"   Retrying in 3 seconds...")
+                        time.sleep(3)
+                    else:
+                        print(f"   Response: {response.text[:200]}")
+                    
+            except Exception as e:
+                print(f"⚠️  AI generation failed (attempt {attempt+1}/{max_retries}): {e}")
+                if attempt < max_retries - 1:
+                    print(f"   Retrying in 3 seconds...")
+                    time.sleep(3)
+        
+        # All retries failed, use fallback
+        print(f"   Using fallback template...")
+        return self._fallback_email(first_name, company_clean, candidate_name, skills, experience, phone, linkedin, company_info, target_roles)
     
     def _parse_email(self, content: str, hr_name: str, company: str, 
                      candidate_name: str, phone: str, linkedin: str) -> tuple:
@@ -376,28 +390,86 @@ LinkedIn: {linkedin}"""
         if not body:
             body = content
         
+        # Ensure LinkedIn URL has proper "LinkedIn:" prefix for HTML conversion
+        if linkedin in body and f"LinkedIn: {linkedin}" not in body and f"LinkedIn:{linkedin}" not in body:
+            body = body.replace(linkedin, f"LinkedIn: {linkedin}")
+        
         return subject, body
     
     def _fallback_email(self, hr_name: str, company: str, candidate_name: str, 
                         skills: str, experience: str, phone: str, linkedin: str,
-                        company_info: str = "") -> tuple:
-        """Fallback template when AI fails."""
-        subject = f"Application for Entry-Level Opportunity at {company}"
+                        company_info: str = "", target_roles: str = "") -> tuple:
+        """Fallback template when AI fails - generic based on provided info."""
+        import random
+        
+        # Extract first skill/role for subject line variety
+        first_skill = skills.split(',')[0].strip() if skills else "Technology"
+        first_role = target_roles.split(',')[0].strip() if target_roles else ""
+        
+        # Create variety in subject lines - GENERIC based on info provided
+        subject_options = [
+            f"Exploring Opportunities at {company}",
+            f"Passionate Professional Interested in {company}",
+            f"Eager to Contribute to {company}'s Team",
+            f"{first_skill} Enthusiast - {company} Opportunity",
+        ]
+        if first_role:
+            subject_options.append(f"{first_role} Opportunity at {company}")
+        subject = random.choice(subject_options)
         
         # Use company info if available
         company_hook = ""
-        if company_info and "no additional information" not in company_info:
-            company_hook = f"I've been following {company}'s work and am impressed by your impact in the industry. "
+        if company_info and "no additional information" not in company_info.lower():
+            first_sentence = company_info.split('.')[0][:150]
+            hooks = [
+                f"I came across {company} and was impressed by your innovative work. ",
+                f"Learning about {company}'s focus on technology got me excited about potential opportunities. ",
+                f"Your work at {company} caught my attention. ",
+            ]
+            company_hook = random.choice(hooks)
         
-        body = f"""Dear {hr_name},
+        # Create variety in body text with bold keywords from actual skills
+        skill_list = [s.strip() for s in skills.split(',')[:3] if s.strip()]
+        highlighted_skills = ', '.join([f"**{s}**" for s in skill_list]) if skill_list else "**technology solutions**"
+        
+        # Different body templates
+        body_templates = [
+            f"""Dear {hr_name},
 
-{company_hook}I am {candidate_name}, {experience}. My skills in {skills} align well with the innovative work at {company}.
+{company_hook}I'm {candidate_name}, with experience in {highlighted_skills}. 
 
-I would love the opportunity to discuss how I could contribute to your team.
+{experience}
+
+Would you be open to a quick chat about how I could contribute to {company}?
 
 Best regards,
 {candidate_name}
-{linkedin}"""
+LinkedIn: {linkedin}""",
+
+            f"""Dear {hr_name},
+
+{company_hook}I'm {candidate_name}. My background includes hands-on experience with {highlighted_skills}.
+
+I'm genuinely interested in exploring opportunities at {company} where I can apply my skills and grow professionally.
+
+Looking forward to connecting!
+
+Best regards,
+{candidate_name}
+LinkedIn: {linkedin}""",
+
+            f"""Dear {hr_name},
+
+{company_hook}My name is {candidate_name}, and I specialize in {highlighted_skills}.
+
+I'd love the chance to discuss how my experience could benefit {company}.
+
+Best regards,
+{candidate_name}
+LinkedIn: {linkedin}"""
+        ]
+        
+        body = random.choice(body_templates)
         return subject, body
 
 
