@@ -542,7 +542,13 @@ class EmailAutomation:
         """Send email via Gmail SMTP with HTML formatting."""
         try:
             msg = MIMEMultipart()
-            msg['From'] = config.EMAIL_ADDRESS
+            # Use a display name so recipients see your name instead of the raw email
+            sender_name = getattr(config, 'YOUR_NAME', '').strip()
+            if sender_name:
+                msg['From'] = f"{sender_name} <{config.EMAIL_ADDRESS}>"
+            else:
+                msg['From'] = config.EMAIL_ADDRESS
+            msg['Reply-To'] = config.EMAIL_ADDRESS
             msg['To'] = to_email
             msg['Subject'] = subject
             
